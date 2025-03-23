@@ -46,19 +46,41 @@ const mockTests: TestResult[] = [
 const Index = () => {
   const [timeframe, setTimeframe] = useState<TimeframeOption>('weekly');
   const [hasTests, setHasTests] = useState(false);
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
   
   // Show mock test results when the user clicks to take their first test
   const handleStartTest = () => {
+    // Set test results to the mock data
+    setTestResults(mockTests);
+    
+    // Notify the user
     toast('Test completed!', {
       description: 'Your results are now available in the dashboard.',
     });
+    
+    // Update state to show progress
     setHasTests(true);
   };
 
   // Calculate total progress stats
-  const totalQuestions = hasTests ? mockTests.reduce((sum, test) => sum + test.questionsCount, 0) : 0;
-  const totalCorrect = hasTests ? mockTests.reduce((sum, test) => sum + test.score, 0) : 0;
+  const totalQuestions = testResults.reduce((sum, test) => sum + test.questionsCount, 0);
+  const totalCorrect = testResults.reduce((sum, test) => sum + test.score, 0);
   const totalPercentage = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+
+  // Check if the category has any tests
+  const hasCategoryTests = (category: string) => {
+    return testResults.some(test => test.category === category);
+  };
+
+  // Calculate category progress
+  const getCategoryProgress = (category: string) => {
+    const categoryTests = testResults.filter(test => test.category === category);
+    if (categoryTests.length === 0) return 0;
+    
+    const totalCategoryQuestions = categoryTests.reduce((sum, test) => sum + test.questionsCount, 0);
+    const totalCategoryCorrect = categoryTests.reduce((sum, test) => sum + test.score, 0);
+    return Math.round((totalCategoryCorrect / totalCategoryQuestions) * 100);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -97,23 +119,23 @@ const Index = () => {
                 />
                 <ProgressCard
                   title="Basic Rights"
-                  score={8}
-                  maxScore={10}
-                  change={-2}
+                  score={hasCategoryTests('Basic Rights') ? 8 : 0}
+                  maxScore={hasCategoryTests('Basic Rights') ? 10 : 0}
+                  change={hasCategoryTests('Basic Rights') ? -2 : 0}
                   infoText="Progress in understanding foundational rights"
                 />
                 <ProgressCard
                   title="Civil Rights"
-                  score={10}
-                  maxScore={10}
-                  change={10}
+                  score={hasCategoryTests('Civil Rights') ? 10 : 0}
+                  maxScore={hasCategoryTests('Civil Rights') ? 10 : 0}
+                  change={hasCategoryTests('Civil Rights') ? 10 : 0}
                   infoText="Progress in understanding freedom of expression"
                 />
                 <ProgressCard
                   title="Social Rights"
-                  score={9}
-                  maxScore={10}
-                  change={3}
+                  score={hasCategoryTests('Social Rights') ? 9 : 0}
+                  maxScore={hasCategoryTests('Social Rights') ? 10 : 0}
+                  change={hasCategoryTests('Social Rights') ? 3 : 0}
                   infoText="Progress in understanding right to play and leisure"
                 />
               </div>
@@ -150,7 +172,7 @@ const Index = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-accent">
                             <BookOpen className="h-6 w-6 text-primary mb-2" />
-                            <div className="text-2xl font-bold">{mockTests.length}</div>
+                            <div className="text-2xl font-bold">{testResults.length}</div>
                             <p className="text-sm text-muted-foreground">Tests Taken</p>
                           </div>
                           
@@ -163,7 +185,7 @@ const Index = () => {
                           <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-accent">
                             <Trophy className="h-6 w-6 text-justice-green mb-2" />
                             <div className="text-2xl font-bold">
-                              {mockTests.filter(t => t.score === t.questionsCount).length}
+                              {testResults.filter(t => t.score === t.questionsCount).length}
                             </div>
                             <p className="text-sm text-muted-foreground">Perfect Scores</p>
                           </div>
@@ -188,7 +210,7 @@ const Index = () => {
                       </CardHeader>
                       <CardContent>
                         <TestResults 
-                          results={mockTests.slice(0, 2)} 
+                          results={testResults.slice(0, 2)} 
                           maxHeight="200px"
                         />
                         <Button 
@@ -214,40 +236,43 @@ const Index = () => {
                     <CardContent>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {[
-                          { category: 'Basic Rights', progress: 80, description: 'Foundational rights that every child has', icon: <BookOpen className="h-5 w-5" /> },
-                          { category: 'Civil Rights', progress: 100, description: 'Rights related to freedom and expression', icon: <Award className="h-5 w-5" /> },
-                          { category: 'Social Rights', progress: 90, description: 'Rights related to social welfare and development', icon: <Trophy className="h-5 w-5" /> },
-                          { category: 'Protection Rights', progress: 0, description: 'Rights protecting children from harm', icon: <PieChart className="h-5 w-5" /> },
-                        ].map((category, index) => (
-                          <div key={index} className="rounded-lg border p-4 transition-smooth hover:border-primary/20">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center text-primary">
-                                {category.icon}
+                          { category: 'Basic Rights', description: 'Foundational rights that every child has', icon: <BookOpen className="h-5 w-5" /> },
+                          { category: 'Civil Rights', description: 'Rights related to freedom and expression', icon: <Award className="h-5 w-5" /> },
+                          { category: 'Social Rights', description: 'Rights related to social welfare and development', icon: <Trophy className="h-5 w-5" /> },
+                          { category: 'Protection Rights', description: 'Rights protecting children from harm', icon: <PieChart className="h-5 w-5" /> },
+                        ].map((category, index) => {
+                          const progress = getCategoryProgress(category.category);
+                          return (
+                            <div key={index} className="rounded-lg border p-4 transition-smooth hover:border-primary/20">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center text-primary">
+                                  {category.icon}
+                                </div>
+                                <h3 className="font-medium">{category.category}</h3>
                               </div>
-                              <h3 className="font-medium">{category.category}</h3>
+                              <p className="text-xs text-muted-foreground mb-3">{category.description}</p>
+                              
+                              {progress > 0 ? (
+                                <>
+                                  <div className="w-full bg-secondary rounded-full h-2 mb-1">
+                                    <div 
+                                      className="bg-primary h-full rounded-full animate-progress-fill" 
+                                      style={{ width: `${progress}%` }}
+                                    />
+                                  </div>
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-muted-foreground">Progress</span>
+                                    <span className="font-medium">{progress}%</span>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex items-center justify-center h-10 text-sm text-muted-foreground">
+                                  Not started yet
+                                </div>
+                              )}
                             </div>
-                            <p className="text-xs text-muted-foreground mb-3">{category.description}</p>
-                            
-                            {category.progress > 0 ? (
-                              <>
-                                <div className="w-full bg-secondary rounded-full h-2 mb-1">
-                                  <div 
-                                    className="bg-primary h-full rounded-full animate-progress-fill" 
-                                    style={{ width: `${category.progress}%` }}
-                                  />
-                                </div>
-                                <div className="flex justify-between text-xs">
-                                  <span className="text-muted-foreground">Progress</span>
-                                  <span className="font-medium">{category.progress}%</span>
-                                </div>
-                              </>
-                            ) : (
-                              <div className="flex items-center justify-center h-10 text-sm text-muted-foreground">
-                                Not started yet
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
@@ -265,8 +290,8 @@ const Index = () => {
                     <CardContent>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         {[
-                          { title: 'Perfect Score', description: 'Achieved 100% on a test', unlocked: true, icon: <Trophy className="h-6 w-6 text-justice-green" /> },
-                          { title: 'Quick Learner', description: 'Completed 3 tests', unlocked: true, icon: <Clock className="h-6 w-6 text-justice-blue" /> },
+                          { title: 'Perfect Score', description: 'Achieved 100% on a test', unlocked: testResults.some(t => t.score === t.questionsCount), icon: <Trophy className="h-6 w-6 text-justice-green" /> },
+                          { title: 'Quick Learner', description: 'Completed 3 tests', unlocked: testResults.length >= 3, icon: <Clock className="h-6 w-6 text-justice-blue" /> },
                           { title: 'Rights Expert', description: 'Mastered all categories', unlocked: false, icon: <Award className="h-6 w-6 text-justice-purple" /> },
                         ].map((achievement, index) => (
                           <div 
@@ -314,7 +339,7 @@ const Index = () => {
                     </CardHeader>
                     <CardContent>
                       <TestResults 
-                        results={mockTests} 
+                        results={testResults} 
                         maxHeight="500px" 
                       />
                     </CardContent>

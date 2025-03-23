@@ -17,7 +17,10 @@ const TestResults: React.FC<TestResultsProps> = ({
   maxHeight = '400px',
   emptyMessage = 'No test results yet'
 }) => {
-  if (!results.length) {
+  // Check if results is undefined, null, or empty
+  const isEmpty = !results || results.length === 0;
+
+  if (isEmpty) {
     return (
       <div className={cn(
         'flex items-center justify-center p-8 text-muted-foreground text-sm',
